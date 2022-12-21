@@ -91,7 +91,6 @@ class ThreadSimulation (threading.Thread):
             fog_density = value*100,
             sun_altitude_angle = 90+180*(value2-1))
         self.world.set_weather(weather)
-        #self.speed_cal.Sistemeflou1(value, value2)
 
     def get_target_speed(self):
         target_speed = self._target_speed
@@ -99,19 +98,107 @@ class ThreadSimulation (threading.Thread):
 
     def main_cycle(self):
         try:
-            # stop_threads = False
-            # client = carla.Client('localhost', 2000);
-            # client.set_timeout(10.0);
-            # # ==============================================================================
-            # # -- World ---------------------------------------------------------------
-            # # =============================================================================
-            # world = client.get_world()
+            # --------------
+            # Strategical Level, Path definition
+            # --------------
+            waypoints = self.map.generate_waypoints(distance=2.0)
+            target_waypoints = []
+            reverse_path = [] # Some waypoints could be in the opposite direction 
+
+            for waypoint in waypoints:
+                if(waypoint.lane_id == -4 and waypoint.road_id == 45):
+                    target_waypoints.append(waypoint)
+            for waypoint in waypoints:
+                if(waypoint.lane_id == -1 and waypoint.road_id == 136):
+                    target_waypoints.append(waypoint)
+            for waypoint in waypoints:
+                if(waypoint.lane_id == -3 and waypoint.road_id == 22):
+                    target_waypoints.append(waypoint)
+            for waypoint in waypoints:
+                if(waypoint.lane_id == -1 and waypoint.road_id == 1594):
+                    target_waypoints.append(waypoint)
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 37):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 761):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 36):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 862):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 35):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 43):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 266):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 42):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 6 and waypoint.road_id == 50):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+            for waypoint in waypoints:
+                if(waypoint.lane_id == 3 and waypoint.road_id == 1162):
+                    reverse_path.append(waypoint)
+            reverse_path.reverse()
+            target_waypoints.extend(reverse_path)
+            reverse_path = []
+
+            for waypoint in waypoints:
+                if(waypoint.lane_id == -3 and waypoint.road_id == 23):
+                    target_waypoints.append(waypoint)    
+
+            # --------------
+            # Path Visualisation
+            # --------------
+
+            for waypoint in target_waypoints:
+                self.world.debug.draw_string(waypoint.transform.location, 'O', draw_shadow=False,
+                                            color=carla.Color(r=0, g=255, b=0), life_time=120,
+                                            persistent_lines=True)
+
             # --------------
             # Start and End Point
             # --------------
-            # map = world.get_map()
-            start_waypoint = self.map.get_waypoint(carla.Location(x=-264.83,y=435.70,z=0.5),project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
-            end_waypoint = self.map.get_waypoint(carla.Location(x=-381.30,y=-5.77,z=0.5),project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
+            start_waypoint = target_waypoints[0]
+            end_waypoint = target_waypoints[-1]
+
+            # start_waypoint = self.map.get_waypoint(carla.Location(x=-264.83,y=435.70,z=0.5),project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
+            # end_waypoint = self.map.get_waypoint(carla.Location(x=-381.30,y=-5.77,z=0.5),project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
             
             print(start_waypoint.transform.location)
             print(end_waypoint.transform.location)
@@ -136,7 +223,7 @@ class ThreadSimulation (threading.Thread):
             ego_color = random.choice(ego_bp.get_attribute('color').recommended_values)
             ego_bp.set_attribute('color',ego_color)
             print('\nEgo color is set')
-            ego_transform = carla.Transform(start_waypoint.transform.location + carla.Location(z=0.5)) # Avoid collision
+            ego_transform = carla.Transform(start_waypoint.transform.location + carla.Location(z=0.5),carla.Rotation(yaw = 90)) # Avoid collision
             ego_vehicle = self.world.spawn_actor(ego_bp,ego_transform)
             print('\nEgo is spawned')
 
@@ -155,19 +242,18 @@ class ThreadSimulation (threading.Thread):
             agent = BasicAgent(ego_vehicle, opt_dict={"offset": 0})
             destination = end_waypoint.transform.location
             agent.set_destination(destination)
-            agent.set_target_speed(40)
-            path = agent.trace_route(start_waypoint, end_waypoint)
+            agent.set_target_speed(80)
+            # path = agent.trace_route(start_waypoint, end_waypoint) # Automatic path creation
 
             # --------------
-            # Path Visualisation
+            # Creation route
             # --------------
 
-            i = 0 # waypoints in  the first column
-            waypoint_list = [fila[i] for fila in path]
-            print(waypoint_list[0].transform.location) ## Fitted Start Point
+            route_trace = []
+            for waypoint in target_waypoints:
+                route_trace.append((waypoint, 4)) ## Follow Line = 4 
             
-            for x in (waypoint_list):
-                self.world.debug.draw_point(x.transform.location,size=0.1, color=carla.Color(r=0, g=255, b=0), life_time=120.0)
+            agent.set_global_plan(route_trace)
 
             # --------------
             # Place a sensor
@@ -183,6 +269,62 @@ class ThreadSimulation (threading.Thread):
             calculator = FuzzyCalculator(ego_vehicle) 
 
             # --------------
+            # Detect zone to spawn vehicles
+            # --------------
+            # waypoints = self.map.generate_waypoints(distance=2.0)
+            # main_filtered_waypoints = []
+            # second_filtered_waypoints = []
+            # for waypoint in waypoints:
+            #     if(waypoint.road_id == 22):
+            #         main_filtered_waypoints.append(waypoint)
+            #     if(waypoint.road_id == 23):
+            #         main_filtered_waypoints.append(waypoint)
+            #     if(waypoint.road_id == 45):
+            #         main_filtered_waypoints.append(waypoint)
+
+            # for waypoint in waypoints:
+            #     for x in range(30,51):
+            #         if(waypoint.road_id == x & x!=45):
+            #             second_filtered_waypoints.append(waypoint)
+            
+            # main_spawn_points = []
+            # second_spawn_points = []
+
+            # Debug visuel
+            # for waypoint in main_filtered_waypoints:
+            #     world.debug.draw_string(waypoint.transform.location, 'O', draw_shadow=False,
+            #                                 color=carla.Color(r=255, g=0, b=0), life_time=life_time,
+            #                                 persistent_lines=True)  
+            # for waypoint in second_filtered_waypoints:
+            #     world.debug.draw_string(waypoint.transform.location, 'O', draw_shadow=False,
+            #                                 color=carla.Color(r=0, g=0, b=255), life_time=life_time,
+            #                                 persistent_lines=True)
+            
+                       
+            # Get the blueprint library and filter for the vehicle blueprints
+            # vehicle_blueprints = self.world.get_blueprint_library().filter('*vehicle*')
+            # # Get the map's spawn points
+            # for waypoint in main_filtered_waypoints:
+            #     main_spawn_points.append(carla.Transform(waypoint.transform.location + carla.Location(z=0.5)))
+
+            # for waypoint in second_filtered_waypoints:
+            #     second_spawn_points.append(carla.Transform(waypoint.transform.location + carla.Location(z=0.5)))
+
+            
+
+            # Spawn 50 vehicles randomly distributed throughout the map 
+            # for each spawn point, we choose a random vehicle from the blueprint library
+
+            # for i in range(0,20):
+            #    self.world.try_spawn_actor(random.choice(vehicle_blueprints), random.choice(main_spawn_points))
+            # for i in range(0,20):
+            #    self.world.try_spawn_actor(random.choice(vehicle_blueprints), random.choice(second_spawn_points))
+
+            # for vehicle in self.world.get_actors().filter('*vehicle*'):
+            #     if(vehicle.id != ego_vehicle.id):
+            #         vehicle.set_autopilot(True)
+
+            # --------------
             # Main Loop
             # --------------
             while True:
@@ -196,16 +338,20 @@ class ThreadSimulation (threading.Thread):
                 velocity=ego_vehicle.get_velocity()
                 speed= 3.6 * math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
                 self._target_speed = speed
-
+                       
                 #    Control
                 input_control = calculator.fuzzy_system_output()
-                print(input_control[0])
+                # print(input_control[0])
                 agent.set_target_speed(input_control[0])
+                agent.set_offset(-3.5)
                 #    Control
                 ego_vehicle.apply_control(agent.run_step())
 
         finally:
             if ego_vehicle is not None:
                 ego_vehicle.destroy()
+                # for vehicle in self.world.get_actors().filter('*vehicle*'):
+                #     if(vehicle.id != ego_vehicle.id):
+                #         vehicle.destroy()
             stop_threads = True
             print('thread killed')
