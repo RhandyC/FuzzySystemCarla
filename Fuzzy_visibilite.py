@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 # Generate universe variables
 #   * Quality and brightnessice on subjective ranges [0, 10]
 #   * Tip has a range of [0, 25] in units of percentage points
-foggy = 0.3
+foggy = 0.9
 foggy_r = 1-foggy
-brightness = 0.9
+brightness = 0.1
 x_foggy_r = np.arange(0, 1.1, 0.1)
 x_brightness = np.arange(0, 1.1, 0.1)
 x_visibility  = np.arange(0, 1.1, 0.1)
@@ -69,41 +69,90 @@ brightness_level_hi = fuzz.interp_membership(x_brightness, brightness_hi, bright
 
 # Now we take our rules and apply them. Rule 1 concerns bad food OR brightnessice.
 # The OR operator means we take the maximum of these two.
-active_rule11 = np.fmax(foggy_r_level_lo, brightness_level_lo)
-active_rule12 = np.fmax(foggy_r_level_lo, brightness_level_md)
-active_rule13 = np.fmax(foggy_r_level_lo, brightness_level_hi)
+active_rule11 = np.fmin(foggy_r_level_lo, brightness_level_lo)
+active_rule12 = np.fmin(foggy_r_level_lo, brightness_level_md)
+active_rule13 = np.fmin(foggy_r_level_lo, brightness_level_hi)
 
-active_rule21 = np.fmax(foggy_r_level_md, brightness_level_lo)
-active_rule22 = np.fmax(foggy_r_level_md, brightness_level_md)
-active_rule23 = np.fmax(foggy_r_level_md, brightness_level_hi)
+active_rule21 = np.fmin(foggy_r_level_md, brightness_level_lo)
+active_rule22 = np.fmin(foggy_r_level_md, brightness_level_md)
+active_rule23 = np.fmin(foggy_r_level_md, brightness_level_hi)
 
-active_rule31 = np.fmax(foggy_r_level_hi, brightness_level_lo)
-active_rule32 = np.fmax(foggy_r_level_hi, brightness_level_md)
-active_rule33 = np.fmax(foggy_r_level_hi, brightness_level_hi)
+active_rule31 = np.fmin(foggy_r_level_hi, brightness_level_lo)
+active_rule32 = np.fmin(foggy_r_level_hi, brightness_level_md)
+active_rule33 = np.fmin(foggy_r_level_hi, brightness_level_hi)
 
 
 # Now we apply this by clipping the top off the corresponding output
 # membership function with `np.fmin`
 
-visibility_activation_lo1 = np.fmin(active_rule11,active_rule12,visibility_lo)  # removed entirely to 0
-visibility_activation_lo2 = np.fmin(active_rule13,active_rule21,visibility_lo)  # removed entirely to 0
 
-visibility_activation_lo = np.fmin(visibility_activation_lo1, visibility_activation_lo2, visibility_lo)  # removed entirely to 0
+active_rule_lo_max = max([active_rule11, active_rule12, active_rule13,active_rule21])
 
-visibility_activation_md1 = np.fmin(active_rule22,active_rule23,visibility_md)  # removed entirely to 0
-#visibility_activation_md2 = np.fmin(active_rule31)  # removed entirely to 0
+visibility_activation_lo = np.fmin(visibility_lo, active_rule_lo_max)
 
-visibility_activation_md = np.fmin(visibility_activation_md1,active_rule31,visibility_md)  # removed entirely to 0
 
-visibility_activation_hi = np.fmin(active_rule32,active_rule33, visibility_hi)  # removed entirely to 0
+#for active_rule_i in [ active_rule12, active_rule13,active_rule21] :
+    
+#    active_rule_lo_max = np.fmax(active_rule_i,active_rule_lo_max)
+
+    
+
+
+
+#visibility_activation_lo = active_rule_lo_max
+
+#visibility_activation_lo1 = np.fmax(active_rule11,active_rule12,visibility_lo)  # removed entirely to 0
+#visibility_activation_lo2 = np.fmax(active_rule13,active_rule21,visibility_lo)  # removed entirely to 0
+
+#visibility_activation_lo = np.fmax(visibility_activation_lo1, visibility_activation_lo2)  #, visibility_lo)  # removed entirely to 0
+
+#visibility_activation_md1 = np.fmax(active_rule22,active_rule23,visibility_md)  # removed entirely to 0
+#visibility_activation_md2 = np.fmax(active_rule31)  # removed entirely to 0
+
+
+active_rule_md_max = max([active_rule22, active_rule31,active_rule23])
+
+visibility_activation_md = np.fmin(visibility_md, active_rule_md_max)
+
+
+
+#active_rule_md_max = np.fmax(visibility_md, active_rule22)
+
+#for active_rule_j in [active_rule31,active_rule23,] :
+    
+#    active_rule_md_max = np.fmax(active_rule_i,active_rule_lo_max)
+
+    
+#visibility_activation_md = active_rule_md_max
+
+
+#visibility_activation_md = np.fmax(visibility_activation_md1,active_rule31,visibility_md)  # removed entirely to 0
+
+
+active_rule_hi_max = max([active_rule32, active_rule33])
+
+visibility_activation_hi = np.fmin(visibility_hi, active_rule_hi_max)
+
+
+
+#active_rule_hi_max = np.fmax(visibility_md, active_rule32)
+
+#for active_rule_k in [active_rule33] :
+    
+#    active_rule_hi_max = np.fmax(active_rule_i,active_rule_hi_max)
+
+    
+#visibility_activation_hi = active_rule_hi_max
+
+#visibility_activation_hi = np.fmax(active_rule32,active_rule33, visibility_hi)  # removed entirely to 0
 
 
 # For rule 2 we connect acceptable brightnessice to medium tipping
-active_rule2 = np.fmax(foggy_r_level_md, brightness_level_hi)
+active_rule2 = np.fmin(foggy_r_level_md, brightness_level_hi)
 #visibility_activation_md = np.fmin(brightness_level_md, visibility_md)
 
 # For rule 3 we connect high brightnessice OR high food with high tipping
-active_rule3 = np.fmax(foggy_r_level_hi, brightness_level_hi)
+active_rule3 = np.fmin(foggy_r_level_hi, brightness_level_hi)
 #visibility_activation_hi = np.fmin(active_rule3, visibility_hi)
 visibility0 = np.zeros_like(x_visibility)
 
@@ -126,4 +175,4 @@ for ax in (ax0,):
     ax.get_yaxis().tick_left()
 
 plt.tight_layout()
-plt.show()
+#plt.show()
