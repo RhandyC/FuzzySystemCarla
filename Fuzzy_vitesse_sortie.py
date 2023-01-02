@@ -1,6 +1,9 @@
 import numpy as np
 import skfuzzy as fuzz
 import matplotlib.pyplot as plt
+from Fuzzy_vitesseintrinseque import *
+from Fuzzy_visibilite import *
+
 
 
 
@@ -8,16 +11,24 @@ import matplotlib.pyplot as plt
 # Generate universe variables
 #   * Quality and brightnessice on subjective ranges [0, 10]
 #   * Tip has a range of [0, 25] in units of percentage points
-foggy = 0.7
-brightness = 0.2
+#max_speed = [0.0 , 0.4, 0.7]
+#max_speed = speedint(conso_val,age_val,hate_val)
+max_speed = speedint(1,0,1)
 
-def visibilite(foggy,brightness) :
+#visibility = [0, 0.5, 0.9]
+#visibilite(foggy,brightness)
 
-    foggy_r = 1-foggy
+visibility = visibilite(0,1)
+
+
+def vitesse_finale(visibility_activation, speed_activation) :
+
+    x_finalspeed  = np.arange(0, 1.1, 0.1)
+    """ foggy_r = 1-foggy
 
     x_foggy_r = np.arange(0, 1.1, 0.1)
     x_brightness = np.arange(0, 1.1, 0.1)
-    x_visibility  = np.arange(0, 1.1, 0.1)
+    
 
 
     # Generate fuzzy membership functions
@@ -26,11 +37,11 @@ def visibilite(foggy,brightness) :
     foggy_r_hi = fuzz.trimf(x_foggy_r, [0.5, 1, 1])
     brightness_lo = fuzz.trimf(x_brightness, [0, 0, 0.5])
     brightness_md = fuzz.trimf(x_brightness, [0, 0.5, 1])
-    brightness_hi = fuzz.trimf(x_brightness, [0.5, 1, 1])
-    visibility_lo = fuzz.trimf(x_visibility, [0, 0, 0.5])
-    visibility_md = fuzz.trimf(x_visibility, [0, 0.5, 1])
-    visibility_hi = fuzz.trimf(x_visibility, [0.5, 1, 1])
-
+    brightness_hi = fuzz.trimf(x_brightness, [0.5, 1, 1])"""
+    finalspeed_lo = fuzz.trimf(x_finalspeed, [0, 0, 0.5])
+    finalspeed_md = fuzz.trimf(x_finalspeed, [0, 0.5, 1])
+    finalspeed_hi = fuzz.trimf(x_finalspeed, [0.5, 1, 1])
+    """""
     # Visualize these universes and membership functions
     fig, (ax0, ax1, ax2) = plt.subplots(nrows=3, figsize=(8, 9))
 
@@ -54,10 +65,10 @@ def visibilite(foggy,brightness) :
 
     # Turn off top/right axes
     for ax in (ax0, ax1, ax2):
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
 
     plt.tight_layout()
 
@@ -71,36 +82,36 @@ def visibilite(foggy,brightness) :
     brightness_level_lo = fuzz.interp_membership(x_brightness, brightness_lo, brightness)
     brightness_level_md = fuzz.interp_membership(x_brightness, brightness_md, brightness)
     brightness_level_hi = fuzz.interp_membership(x_brightness, brightness_hi, brightness)
-
+ """
     # Now we take our rules and apply them. Rule 1 concerns bad food OR brightnessice.
     # The OR operator means we take the maximum of these two.
-    active_rule11 = np.fmin(foggy_r_level_lo, brightness_level_lo)
-    active_rule12 = np.fmin(foggy_r_level_lo, brightness_level_md)
-    active_rule13 = np.fmin(foggy_r_level_lo, brightness_level_hi)
+    active_rule11 = np.fmin(visibility_activation[0], speed_activation[0])
+    active_rule12 = np.fmin(visibility_activation[0], speed_activation[1])
+    active_rule13 = np.fmin(visibility_activation[0], speed_activation[2])
 
-    active_rule21 = np.fmin(foggy_r_level_md, brightness_level_lo)
-    active_rule22 = np.fmin(foggy_r_level_md, brightness_level_md)
-    active_rule23 = np.fmin(foggy_r_level_md, brightness_level_hi)
+    active_rule21 = np.fmin(visibility_activation[1], speed_activation[0])
+    active_rule22 = np.fmin(visibility_activation[1], speed_activation[1])
+    active_rule23 = np.fmin(visibility_activation[1], speed_activation[2])
 
-    active_rule31 = np.fmin(foggy_r_level_hi, brightness_level_lo)
-    active_rule32 = np.fmin(foggy_r_level_hi, brightness_level_md)
-    active_rule33 = np.fmin(foggy_r_level_hi, brightness_level_hi)
+    active_rule31 = np.fmin(visibility_activation[2], speed_activation[0])
+    active_rule32 = np.fmin(visibility_activation[2], speed_activation[1])
+    active_rule33 = np.fmin(visibility_activation[2], speed_activation[2])
 
 
     # Now we apply this by clipping the top off the corresponding output
     # membership function with `np.fmin`
 
-    visibility_activation =[]
+    finalspeed_activation = []
     active_rule_lo_max = max([active_rule11, active_rule12, active_rule13,active_rule21])
 
-    visibility_activation.append(np.fmin(visibility_lo, active_rule_lo_max))
+    finalspeed_activation.append(np.fmin(finalspeed_lo, active_rule_lo_max))
 
 
     #for active_rule_i in [ active_rule12, active_rule13,active_rule21] :
-        
+
     #    active_rule_lo_max = np.fmax(active_rule_i,active_rule_lo_max)
 
-        
+
 
 
 
@@ -117,17 +128,17 @@ def visibilite(foggy,brightness) :
 
     active_rule_md_max = max([active_rule22, active_rule31,active_rule23])
 
-    visibility_activation.append(np.fmin(visibility_md, active_rule_md_max))
+    finalspeed_activation.append(np.fmin(finalspeed_md, active_rule_md_max))
 
 
 
     #active_rule_md_max = np.fmax(visibility_md, active_rule22)
 
     #for active_rule_j in [active_rule31,active_rule23,] :
-        
+
     #    active_rule_md_max = np.fmax(active_rule_i,active_rule_lo_max)
 
-        
+
     #visibility_activation_md = active_rule_md_max
 
 
@@ -136,25 +147,24 @@ def visibilite(foggy,brightness) :
 
     active_rule_hi_max = max([active_rule32, active_rule33])
 
-    visibility_activation.append(np.fmin(visibility_hi, active_rule_hi_max))
+    finalspeed_activation.append(np.fmin(finalspeed_hi, active_rule_hi_max))
 
     for i in range (3):
-        visibility_activation[i] = max(visibility_activation[i])
-
+        finalspeed_activation[i] = max(finalspeed_activation[i])
 
 
     #active_rule_hi_max = np.fmax(visibility_md, active_rule32)
 
     #for active_rule_k in [active_rule33] :
-        
+
     #    active_rule_hi_max = np.fmax(active_rule_i,active_rule_hi_max)
 
-        
+
     #visibility_activation_hi = active_rule_hi_max
 
     #visibility_activation_hi = np.fmax(active_rule32,active_rule33, visibility_hi)  # removed entirely to 0
 
-
+    """""
     # For rule 2 we connect acceptable brightnessice to medium tipping
     active_rule2 = np.fmin(foggy_r_level_md, brightness_level_hi)
     #visibility_activation_md = np.fmin(brightness_level_md, visibility_md)
@@ -163,27 +173,29 @@ def visibilite(foggy,brightness) :
     active_rule3 = np.fmin(foggy_r_level_hi, brightness_level_hi)
     #visibility_activation_hi = np.fmin(active_rule3, visibility_hi)
     visibility0 = np.zeros_like(x_visibility)
-
+      
     # Visualize this
     fig, ax0 = plt.subplots(figsize=(8, 3))
 
-    ax0.fill_between(x_visibility, visibility0, visibility_activation[0], facecolor='b', alpha=0.7)
+    ax0.fill_between(x_visibility, visibility0, visibility_activation_lo, facecolor='b', alpha=0.7)
     ax0.plot(x_visibility, visibility_lo, 'b', linewidth=0.5, linestyle='--', )
-    ax0.fill_between(x_visibility, visibility0, visibility_activation[1], facecolor='g', alpha=0.7)
+    ax0.fill_between(x_visibility, visibility0, visibility_activation_md, facecolor='g', alpha=0.7)
     ax0.plot(x_visibility, visibility_md, 'g', linewidth=0.5, linestyle='--')
-    ax0.fill_between(x_visibility, visibility0, visibility_activation[2], facecolor='r', alpha=0.7)
+    ax0.fill_between(x_visibility, visibility0, visibility_activation_hi, facecolor='r', alpha=0.7)
     ax0.plot(x_visibility, visibility_hi, 'r', linewidth=0.5, linestyle='--')
     ax0.set_title('Output membership activity')
 
     # Turn off top/right axes
     for ax in (ax0,):
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
 
     plt.tight_layout()
     #plt.show()
-    return visibility_activation
 
-visible = visibilite(foggy,brightness)
+    """
+    return finalspeed_activation
+
+vvs = vitesse_finale(visibility, max_speed)
