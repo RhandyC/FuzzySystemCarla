@@ -58,9 +58,9 @@ def ltiv(ltiv_val, lltype) :
 
     ldl_activation.append(max(np.fmin(dll[2], active_rule[2])))
 
-    ldl_activation2 = min(ltiv_min, lltype)
+    #ldl_activation2 = min(ltiv_min, lltype)
 
-    return ldl_activation2
+    return ldl_activation
 
 left_tiv = ltiv(ltiv_val, lltype)
 
