@@ -503,101 +503,112 @@ def CL_risk_level(tiv_val, line_marking_val) :
     return gauche_output
 
 def DecisionOffset (right_val, left_val, behavior_val):
-    x_right = np.arange(0,1.1,0.1)
+    x_right = np.arange(0, 1.1, 0.1)
     x_left = np.arange(0, 1.1, 0.1)
     x_behavior = np.arange(0, 1.1, 0.1)
     x_decision = np.arange(0, 1.1, 0.1)
     
     # Generate fuzzy membership functions
-    conso = []
-    conso.append (fuzz.trimf(x_conso, [0, 0, 0.5]))
-    conso.append (fuzz.trimf(x_conso, [0 , 0.5, 1]))
-    conso.append (fuzz.trimf(x_conso, [0.5, 1, 1]))
+    right = []
+    right.append(fuzz.trimf(x_right, [0, 0, 0]))
+    right.append(fuzz.trimf(x_right, [0 , 0, 1 ]))
+    right.append(fuzz.trimf(x_right, [0, 1, 1]))
 
-    age_r = []
-    age_r.append (fuzz.trimf(x_age_r, [0, 0, 0.5]))
-    age_r.append (fuzz.trimf(x_age_r, [0 , 0.5, 1]))
-    age_r.append (fuzz.trimf(x_age_r, [0.5, 1, 1]))
+    left = []
+    left.append(fuzz.trimf(x_left, [0, 0, 0]))
+    left.append(fuzz.trimf(x_left, [0 , 0, 1 ]))
+    left.append(fuzz.trimf(x_left, [0, 1, 1]))
 
-    hate = []
-    hate.append (fuzz.trimf(x_hate, [0, 0, 0.5]))
-    hate.append(fuzz.trimf(x_hate, [0 , 0.5, 1]))
-    hate.append(fuzz.trimf(x_hate, [0.5, 1, 1]))
+    behavior = []
+    behavior.append (fuzz.trimf(x_behavior, [0, 0, 0.5]))
+    behavior.append(fuzz.trimf(x_behavior, [0 , 0.5, 1]))
+    behavior.append(fuzz.trimf(x_behavior, [0.5, 1, 1]))
 
-    speed=[]
-    speed.append(fuzz.trimf(x_speed, [0, 0, 65]))
-    speed.append(fuzz.trimf(x_speed, [0 , 65, 130]))
-    speed.append(fuzz.trimf(x_speed, [65, 130, 130]))
+    decision=[]
+    decision.append(fuzz.trapmf(x_decision, [0, 0, 0.33 , 0.33]))
+    decision.append(fuzz.trapmf(x_decision, [0.33 , 0.33 , 0.66 , 0.66]))
+    decision.append(fuzz.trapmf(x_decision, [0.66, 0.66, 1 , 1]))
 
-    conso_level = []
-    age_r_level = []
-    hate_level = []
+    right_level = []
+    left_level = []
+    behavior_level = []
 
     for i in range(3):
-        conso_level.append(fuzz.interp_membership(x_conso, conso[i], conso_val))
-        age_r_level.append(fuzz.interp_membership(x_age_r, age_r[i], age_r_val))
-        hate_level.append(fuzz.interp_membership(x_hate, hate[i], hate_val))
+        right_level.append(fuzz.interp_membership(x_right, right[i], right_val))
+        left_level.append(fuzz.interp_membership(x_left, left[i], left_val))
+        behavior_level.append(fuzz.interp_membership(x_behavior, behavior[i], behavior_val))
 
     active_rule = [[[0 for k in range(3)] for j in range(3)] for i in range(3)]
-
 
     for i in range (3) :
         for j in range (3):
             for k in range (3):
-                active_rule[i][j][k] = np.fmin(conso_level[i], age_r_level[j])
-                active_rule[i][j][k] = np.fmin(active_rule[i][j][k],hate_level[k])
+                active_rule[i][j][k] = np.fmin(right_level[i], left_level[j])
+                active_rule[i][j][k] = np.fmin(active_rule[i][j][k],behavior_level[k])
 
-    # 10 rules
-    active_rule_lo_max = max(   active_rule[0][1][0],
-                                active_rule[0][1][1],
+    # 14 rules
+    active_rule_lo_max = max(   active_rule[0][1][1],
                                 active_rule[0][1][2],
                                 active_rule[0][2][0],
                                 active_rule[0][2][1],
                                 active_rule[0][2][2],
-                                active_rule[1][1][0],
-                                active_rule[1][2][0],
-                                active_rule[1][2][1],
-                                active_rule[1][2][2]   )
-
-
-    speed_activation_lo = np.fmin(speed[0], active_rule_lo_max)
-
-    # 13 rules
-    active_rule_md_max = max(   active_rule[0][0][0],
-                                active_rule[0][0][1],
-                                active_rule[0][0][2],
-                                active_rule[1][0][0],
-                                active_rule[1][0][1],
                                 active_rule[1][1][1],
                                 active_rule[1][1][2],
-                                active_rule[2][0][0],
-                                active_rule[2][1][0],
+                                active_rule[1][2][0],
+                                active_rule[1][2][1],
+                                active_rule[1][2][2],
                                 active_rule[2][1][1],
                                 active_rule[2][2][0],
                                 active_rule[2][2][1],
-                                active_rule[2][2][2]     )
+                                active_rule[2][2][2]  )
 
-    speed_activation_md = np.fmin(speed[1], active_rule_md_max)
 
-    # 4 rules
-    active_rule_hi_max = max(   active_rule[1][0][2],
+    desicion_activation_lo = np.fmin(decision[0], active_rule_lo_max)
+
+    # 10 rules
+    active_rule_md_max = max(   active_rule[0][0][0],
+                                active_rule[0][0][1],
+                                active_rule[0][0][2],
+                                active_rule[0][1][0],
+                                active_rule[1][0][0],
+                                active_rule[1][0][1],
+                                active_rule[1][1][0],
+                                active_rule[2][0][0],
                                 active_rule[2][0][1],
+                                active_rule[2][1][0]    )
+
+    desicion_activation_md = np.fmin(decision[1], active_rule_md_max)
+
+    # 3 rules
+    active_rule_hi_max = max(   active_rule[1][0][2],
                                 active_rule[2][0][2],
                                 active_rule[2][1][2]  )
 
-    speed_activation_hi = np.fmin(speed[2], active_rule_hi_max)
+    desicion_activation_hi = np.fmin(decision[2], active_rule_hi_max)
 
     # Aggregate all three output membership functions together
-    aggregated = np.fmax(speed_activation_lo,
-                        np.fmax(speed_activation_md, speed_activation_hi))
+    aggregated = np.fmax(desicion_activation_lo,
+                        np.fmax(desicion_activation_md, desicion_activation_hi))
     
     # Calculate defuzzified result
-    intrinsicSpeed = fuzz.defuzz(x_speed, aggregated, 'centroid')
+    desicionmaking = fuzz.defuzz(x_decision, aggregated, 'centroid')
 
-    intrinsequeSpeed_fuzzy = [max(speed_activation_lo), max(speed_activation_md), max(speed_activation_hi)]
-    print(intrinsequeSpeed_fuzzy)
+    desicionmaking_fuzzy = [max(desicion_activation_lo), max(desicion_activation_md), max(desicion_activation_hi)]
+    print(desicionmaking_fuzzy)
 
-    return intrinsicSpeed
+    result = np.where(desicionmaking_fuzzy == np.amax(desicionmaking_fuzzy))
+    
+    if len(result) > 1:
+        print("Pas de desicion")
+    else:
+        if result[0]== 0:
+            print("CLL")
+        elif result[0] == 1:
+            print("KL")
+        elif result[0] == 2:
+            print("CRL")
+
+    return desicionmaking
 
 def SpeedLimmit(LimitSpeed, AccessibleSpeed) : 
     if(AccessibleSpeed>=LimitSpeed):
@@ -614,16 +625,19 @@ def SpeedLimmit(LimitSpeed, AccessibleSpeed) :
 
 # Sistemeflou2(0.2,0.8)
 
-d = distanceFuzzification(20)
-s = speedFuzzification(10)
-tiv1 = caf_TIV(s, d)
+# d = distanceFuzzification(20)
+# s = speedFuzzification(10)
+# tiv1 = caf_TIV(s, d)
 
-d2 = distanceFuzzification(100)
-s2 = speedFuzzification(10)
-tiv2 = caf_TIV(s2, d2)
+# d2 = distanceFuzzification(100)
+# s2 = speedFuzzification(10)
+# tiv2 = caf_TIV(s2, d2)
 
-vector = minTIV(tiv1, tiv2)
+# vector = minTIV(tiv1, tiv2)
 
-CLL_risk_level(vector, 0)
+# CLL_risk_level(vector, 0)
+
+
+DecisionOffset(0.8, 0.1, 0.2)
 
 
