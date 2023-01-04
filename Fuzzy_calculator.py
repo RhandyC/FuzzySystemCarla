@@ -14,6 +14,8 @@ It can also make use of the global route planner to follow a specifed route
 import sys
 import glob
 import os
+import threading
+import time
 
 ##### Fuzzy system
 import matplotlib.pyplot as plt
@@ -41,26 +43,63 @@ class FuzzyCalculator(object):
     Fuzzzy system charged to obtain longitudinal and lateral tactical commands
     """
 
-    def __init__(self, vehicle):
+    def __init__(self):
         
-        self._vehicle = vehicle
-        self._world = self._vehicle.get_world()
-        self._map = self._world.get_map()
-
+        self._vehicle = None
+        self._world = None
+        self._map = None
         self._debug_marking_lines = False
         self._debug_foggy_level = False
         self._debug_brightness_level = False
 
-    def get_marking_lanes(self):
+        self._current_set_target_speed = 50.0 
+        self._foggy_level = 0.0
+        self._brightness_level = 1.0
+        self._speed_limit = 0.0
+        self._conso = 10.0
+        self._age = 0.0
+        self._behavior = 0.0
+        self._target_speed = 0.0
+        self._offset = 0.0
+        self._target_offset = 0.0
+        self._maneuver_execution = False  
 
+        self._visibility = 0.0
+        self._intrinsicSpeed = 0.0
+        self._accessibleSpeed = 0.0
+
+        self._frontalDistance = 50.0
+        self._frontalRightDistance = 50.0
+        self._frontalLeftDistance = 50.0
+        self._rearRightDistance = 50.0
+        self._rearLeftDistance = 50.0
+
+        self._frontalSpeed = 1.0
+        self._frontalRightSpeed = 1.0
+        self._frontalLeftSpeed = 1.0
+        self._rearRightSpeed = 1.0
+        self._rearLeftSpeed = 1.0
+
+    def set_vehicle(self, vehicle):
+        self._vehicle = vehicle
+        self._world = self._vehicle.get_world()
+        self._map = self._world.get_map()
+        self._speed_limit = self._vehicle.get_speed_limit()
+
+    def get_marking_lanes(self):
         waypoint = self._world.get_map().get_waypoint(self._vehicle.get_location(),project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Shoulder | carla.LaneType.Sidewalk))  
-        
         if(self._debug_marking_lines):
             # Left, Current and Right lane markings
             print("L lane marking type: " + str(waypoint.left_lane_marking.type) + "  R lane marking type: " + str(waypoint.right_lane_marking.type))
         marking_lines = [waypoint.left_lane_marking.type, waypoint.right_lane_marking.type]
         return marking_lines
     
+    def distanceFuzzification(self, distance):
+        return 
+
+    def speedFuzzification(self, speed):
+        return
+
     def get_foggy_level(self):
         foggy_level= self._world.get_weather().fog_density 
         if(self._debug_foggy_level):
@@ -75,13 +114,59 @@ class FuzzyCalculator(object):
             print("Brightness level: " + str((brightness_level + 90.0) / 180.0))
         return (round(((brightness_level + 90.0) / 180.0),2))
 
-    def fuzzy_system_output(self):
+    def isACCActive(self):
+        if(self._frontalDistance <= 20):
+            # print("ACC active")
+            return True
+        else:
+            # print("ACC disabled")
+            return False
+
+    def isRightLaneChangePossible(self):
         marking_lines=self.get_marking_lanes()
-        foggy_level=self.get_foggy_level()
-        brightness_level=self.get_brightness_level()
-        target_speed = self.Sistemeflou1(foggy_level,brightness_level)
-        offset=0
-        return [target_speed, offset]
+        return True
+
+    def isLeftLaneChangePossible(self):
+        marking_lines=self.get_marking_lanes()
+        return True
+
+    def fuzzy_system_output(self):
+        ### Longitudinal Control ####
+        if (self.isACCActive()):
+            self._target_speed = self._frontalSpeed
+        else:
+            
+            speed_limit = self._vehicle.get_speed_limit()
+            self._foggy_level = self.get_foggy_level()
+            self._brightness_level = self.get_brightness_level()
+            self._visibility = self.Visibility(self._foggy_level ,self._brightness_level)
+            self._intrinsicSpeed = self.Vitesseintrinseque(self._conso, self._age, self._behavior)
+            self._accessibleSpeed = self.AccessibleSpeed(self._intrinsicSpeed, self._visibility)
+            self._target_speed = self.SpeedLimmit(speed_limit, self._accessibleSpeed)
+
+        ### Lateral Control ####
+        if (self._maneuver_execution == False) :
+            if (self.isACCActive()):
+                self._target_offset = -3.5
+            else: 
+                self._target_offset = 0
+        
+        if(self._target_offset< self._offset):
+            self._maneuver_execution = True
+            self._offset = self._offset - 0.05
+            if(self._target_offset >= self._offset):
+                self._maneuver_execution = False
+        
+        if(self._target_offset > self._offset):
+            self._maneuver_execution = True
+            self._offset = self._offset + 0.05
+            if(self._target_offset <= self._offset):
+                self._maneuver_execution = False
+                
+
+        print("offset: ",self._offset," target: ", self._target_offset )
+
+        return [self._target_speed, self._offset]
 
     def Sistemeflou1(self, foggy_level, brightness_level):        
         x_foggy = np.arange(0, 1.05, 0.05)
@@ -97,37 +182,6 @@ class FuzzyCalculator(object):
         speed_md = fuzz.trimf(x_speed, [0, 65, 130])        
         speed_hi = fuzz.trimf(x_speed, [65, 130, 130])       
         
-        # fig, (ax0, ax1, ax2) = plt.subplots(nrows=3, figsize=(8, 9))        
-        # ax0.plot(x_foggy, foggy_lo, 'b', linewidth=1.5, label='Low')        
-        # ax0.plot(x_foggy, foggy_md, 'g', linewidth=1.5, label='Medium')
-        # ax0.plot(x_foggy, foggy_hi, 'r', linewidth=1.5, label='High')
-        # ax0.set_title('Foggy level')
-        # ax0.legend()
-
-        # ax1.plot(x_brightness, brightness_lo, 'b', linewidth=1.5, label='Low')
-        # ax1.plot(x_brightness, brightness_md, 'g', linewidth=1.5, label='Medium')
-        # ax1.plot(x_brightness, brightness_hi, 'r', linewidth=1.5, label='High')
-        # ax1.set_title('Brightness level')
-        # ax1.legend()
-
-        # ax2.plot(x_speed, speed_lo, 'b', linewidth=1.5, label='Low')
-        # ax2.plot(x_speed, speed_md, 'g', linewidth=1.5, label='Medium')
-        # ax2.plot(x_speed, speed_hi, 'r', linewidth=1.5, label='High')
-        # ax2.set_title('Speed Level')
-        # ax2.legend()
-
-        # for ax in (ax0, ax1, ax2):
-        #     ax.spines['top'].set_visible(False)
-        #     ax.spines['right'].set_visible(False)
-        #     ax.get_xaxis().tick_bottom()
-        #     ax.get_yaxis().tick_left()
-
-        # plt.tight_layout()
-        # plt.show()
-        
-        # We need the activation of our fuzzy membership functions at these values.
-        # The exact values 6.5 and 9.8 do not exist on our universes...
-        # This is what fuzz.interp_membership exists for!
         current_foggy_level = foggy_level
         current_brightness_level = brightness_level
         foggy_level_lo = fuzz.interp_membership(x_foggy, foggy_lo, current_foggy_level)
@@ -162,29 +216,6 @@ class FuzzyCalculator(object):
 
         speed0 = np.zeros_like(x_speed)
 
-        # Visualize this
-        # fig, ax0 = plt.subplots(figsize=(8, 3))
-
-        # ax0.fill_between(x_speed, speed0, speed_activation_lo, facecolor='b', alpha=0.7)
-        # ax0.plot(x_speed, speed_lo, 'b', linewidth=0.5, linestyle='--', )
-        # ax0.fill_between(x_speed, speed0, speed_activation_md, facecolor='g', alpha=0.7)
-        # ax0.plot(x_speed, speed_md, 'g', linewidth=0.5, linestyle='--')
-        # ax0.fill_between(x_speed, speed0, speed_activation_hi, facecolor='r', alpha=0.7)
-        # ax0.plot(x_speed, speed_hi, 'r', linewidth=0.5, linestyle='--')
-        # ax0.set_title('Output membership activity')
-
-        # # Turn off top/right axes
-        # for ax in (ax0,):
-        #     ax.spines['top'].set_visible(False)
-        #     ax.spines['right'].set_visible(False)
-        #     ax.get_xaxis().tick_bottom()
-        #     ax.get_yaxis().tick_left()
-
-        # plt.tight_layout()
-
-        # plt.show()
-
-
         # Aggregate all three output membership functions together
         aggregated = np.fmax(speed_activation_lo,
                             np.fmax(speed_activation_md, speed_activation_hi))
@@ -194,26 +225,233 @@ class FuzzyCalculator(object):
         speed_activation = fuzz.interp_membership(x_speed, aggregated, speed)  # for plot
         #print(speed)
 
-        # Visualize this
-        # fig, ax0 = plt.subplots(figsize=(8, 3))
-
-        # ax0.plot(x_speed, speed_lo, 'b', linewidth=0.5, linestyle='--', )
-        # ax0.plot(x_speed, speed_md, 'g', linewidth=0.5, linestyle='--')
-        # ax0.plot(x_speed, speed_hi, 'r', linewidth=0.5, linestyle='--')
-        # ax0.fill_between(x_speed, speed0, aggregated, facecolor='Orange', alpha=0.7)
-        # ax0.plot([speed, speed], [0, speed_activation], 'k', linewidth=1.5, alpha=0.9)
-        # ax0.set_title('Aggregated membership and result (line)')
-
-        # # Turn off top/right axes
-        # for ax in (ax0,):
-        #     ax.spines['top'].set_visible(False)
-        #     ax.spines['right'].set_visible(False)
-        #     ax.get_xaxis().tick_bottom()
-        #     ax.get_yaxis().tick_left()
-
-        # plt.tight_layout()
-        # plt.show()
         return (round(speed,1))
+
+    def Visibility(self, foggy_level, brightness_level) : 
+        x_foggy = np.arange(0, 1.05, 0.01)
+        x_brightness = np.arange(0, 1.05, 0.01)        
+        x_visibility  = np.arange(0, 1.05, 0.01)        
+        foggy_lo = fuzz.trimf(x_foggy, [0, 0, 0.25])        
+        foggy_md = fuzz.trimf(x_foggy, [0.1, 0.25, 0.4])        
+        foggy_hi = fuzz.trimf(x_foggy, [0.3, 1, 1])        
+        brightness_lo = fuzz.trimf(x_brightness, [0, 0, 0.6])  
+        brightness_hi = fuzz.trimf(x_brightness, [0.4, 1, 1])        
+        visibility_lo = fuzz.trimf(x_visibility, [0, 0, 0.4])        
+        visibility_md = fuzz.trimf(x_visibility, [0.3, 0.5, 0.7])        
+        visibility_hi = fuzz.trimf(x_visibility, [0.6, 1, 1])      
+
+        current_foggy_level = foggy_level
+        current_brightness_level = brightness_level
+        foggy_level_lo = fuzz.interp_membership(x_foggy, foggy_lo, current_foggy_level)
+        foggy_level_md = fuzz.interp_membership(x_foggy, foggy_md, current_foggy_level)
+        foggy_level_hi = fuzz.interp_membership(x_foggy, foggy_hi, current_foggy_level)
+
+        brightness_level_lo = fuzz.interp_membership(x_brightness, brightness_lo, current_brightness_level)
+        brightness_level_hi = fuzz.interp_membership(x_brightness, brightness_hi, current_brightness_level)
+
+        # Rules
+        active_rule1 = np.fmin(foggy_level_lo, brightness_level_hi)
+        active_rule2 = np.fmin(foggy_level_lo, brightness_level_lo)
+        active_rule3 = np.fmin(foggy_level_md, brightness_level_hi)
+        active_rule4 = np.fmin(foggy_level_md, brightness_level_lo)
+        active_rule5 = np.fmin(foggy_level_hi, brightness_level_hi)
+        active_rule6 = np.fmin(foggy_level_hi, brightness_level_lo)
+
+        visibility_activation_hi = np.fmin(active_rule1, visibility_hi )  # removed entirely to 0
+        visibility_activation_md = np.fmin(max(active_rule2, active_rule3), visibility_md)
+        visibility_activation_lo = np.fmin(max(active_rule4, active_rule5, active_rule6), visibility_lo)
+        # print(visibility_activation_hi)
+        # Sortie floue, vector classes
+        visibility_fuzzy = [max(visibility_activation_lo), max(visibility_activation_md), max(visibility_activation_hi)]
+
+        # print(visibility_fuzzy)
+
+        visibility0 = np.zeros_like(x_visibility)
+
+        # Aggregate all three output membership functions together
+        aggregated = np.fmax(visibility_activation_lo,
+                            np.fmax(visibility_activation_md, visibility_activation_hi))
+
+        # Calculate defuzzified result
+        visibility = fuzz.defuzz(x_visibility, aggregated, 'centroid')
+        visibility_activation = fuzz.interp_membership(x_visibility, aggregated, visibility)  # for plot
+
+        return (visibility)
+
+    def Vitesseintrinseque(self, conso_val, age_r_val, hate_val) : 
+        x_conso = np.arange(0, 25.1, 0.1)
+        x_age_r = np.arange(0, 25.1, 0.1)
+        x_hate = np.arange(0, 1.1, 0.1)
+        x_speed = np.arange(0, 200.1, 0.1)
+        
+        # Generate fuzzy membership functions
+        conso = []
+        conso.append (fuzz.trimf(x_conso, [0, 0, 12.5]))
+        conso.append (fuzz.trimf(x_conso, [0 , 12.5, 25]))
+        conso.append (fuzz.trimf(x_conso, [12.5, 25, 25]))
+
+        age_r = []
+        age_r.append (fuzz.trimf(x_age_r, [0, 0, 12.5]))
+        age_r.append (fuzz.trimf(x_age_r, [0 , 12.5, 25]))
+        age_r.append (fuzz.trimf(x_age_r, [12.5, 25, 25]))
+
+        hate = []
+        hate.append (fuzz.trimf(x_hate, [0, 0, 0.5]))
+        hate.append(fuzz.trimf(x_hate, [0 , 0.5, 1]))
+        hate.append(fuzz.trimf(x_hate, [0.5, 1, 1]))
+
+        speed=[]
+        speed.append(fuzz.trimf(x_speed, [0, 0, 100]))
+        speed.append(fuzz.trimf(x_speed, [0 , 100, 200]))
+        speed.append(fuzz.trimf(x_speed, [100, 200, 200]))
+
+        conso_level = []
+        age_r_level = []
+        hate_level = []
+
+        for i in range(3):
+            conso_level.append(fuzz.interp_membership(x_conso, conso[i], conso_val))
+            age_r_level.append(fuzz.interp_membership(x_age_r, age_r[i], age_r_val))
+            hate_level.append(fuzz.interp_membership(x_hate, hate[i], hate_val))
+
+        active_rule = [[[0 for k in range(3)] for j in range(3)] for i in range(3)]
+
+
+        for i in range (3) :
+            for j in range (3):
+                for k in range (3):
+                    active_rule[i][j][k] = np.fmin(conso_level[i], age_r_level[j])
+                    active_rule[i][j][k] = np.fmin(active_rule[i][j][k],hate_level[k])
+
+        # 10 rules
+        active_rule_lo_max = max(   active_rule[0][1][0],
+                                    active_rule[0][1][1],
+                                    active_rule[0][1][2],
+                                    active_rule[0][2][0],
+                                    active_rule[0][2][1],
+                                    active_rule[0][2][2],
+                                    active_rule[1][1][0],
+                                    active_rule[1][2][0],
+                                    active_rule[1][2][1],
+                                    active_rule[1][2][2]   )
+
+        speed_activation_lo = np.fmin(speed[0], active_rule_lo_max)
+
+        # 13 rules
+        active_rule_md_max = max(   active_rule[0][0][0],
+                                    active_rule[0][0][1],
+                                    active_rule[0][0][2],
+                                    active_rule[1][0][0],
+                                    active_rule[1][0][1],
+                                    active_rule[1][1][1],
+                                    active_rule[1][1][2],
+                                    active_rule[2][0][0],
+                                    active_rule[2][1][0],
+                                    active_rule[2][1][1],
+                                    active_rule[2][2][0],
+                                    active_rule[2][2][1],
+                                    active_rule[2][2][2]     )
+
+        speed_activation_md = np.fmin(speed[1], active_rule_md_max)
+
+        # 4 rules
+        active_rule_hi_max = max(   active_rule[1][0][2],
+                                    active_rule[2][0][1],
+                                    active_rule[2][0][2],
+                                    active_rule[2][1][2]  )
+
+        speed_activation_hi = np.fmin(speed[2], active_rule_hi_max)
+
+        # Aggregate all three output membership functions together
+        aggregated = np.fmax(speed_activation_lo,
+                            np.fmax(speed_activation_md, speed_activation_hi))
+        
+        # Calculate defuzzified result
+        intrinsicSpeed = fuzz.defuzz(x_speed, aggregated, 'centroid')
+
+        # intrinsequeSpeed_fuzzy = [max(speed_activation_lo), max(speed_activation_md), max(speed_activation_hi)]
+        # print(intrinsequeSpeed_fuzzy)
+
+        return intrinsicSpeed
+
+    def AccessibleSpeed(self, intSpeed_val, visibility_val) : 
+
+        x_visibility = np.arange(0,1.1,0.1)
+        x_intSpeed = np.arange(0, 200.1, 0.1)
+        x_accessibleSpeed = np.arange(0, 200.1, 0.1)
+        
+        # Generate fuzzy membership functions
+        visibility  = []
+        visibility.append (fuzz.trimf(x_visibility, [0, 0, 0.5]))
+        visibility.append (fuzz.trimf(x_visibility, [0 , 0.5, 1]))
+        visibility.append (fuzz.trimf(x_visibility, [0.5, 1, 1]))
+
+        intSpeed = []
+        intSpeed.append(fuzz.trimf(x_intSpeed, [0, 0, 100]))
+        intSpeed.append(fuzz.trimf(x_intSpeed, [0 , 100, 200]))
+        intSpeed.append(fuzz.trimf(x_intSpeed, [100, 200, 200]))
+
+        accessibleSpeed = []
+        accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [0, 0, 100]))
+        accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [0 , 100, 200]))
+        accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [100, 200, 200]))
+
+        visibility_level = []
+        intSpeed_level = []
+        accessibleSpeed_level = []
+
+        for i in range(3):
+            visibility_level.append(fuzz.interp_membership(x_visibility, visibility[i], visibility_val))
+            intSpeed_level.append(fuzz.interp_membership(x_intSpeed, intSpeed[i], intSpeed_val))
+
+        active_rule = [[0 for k in range(3)] for j in range(3)]
+
+
+        for i in range (3) :
+            for j in range (3):
+                active_rule[i][j] = np.fmin(visibility_level[i], intSpeed_level[j])
+
+        # 6 rules
+        active_rule_lo_max = max(   active_rule[0][0],
+                                    active_rule[0][1],
+                                    active_rule[0][2],
+                                    active_rule[1][0],
+                                    active_rule[1][1],
+                                    active_rule[2][0]   )
+
+
+        speed_activation_lo = np.fmin(accessibleSpeed[0], active_rule_lo_max)
+
+        # 2 rules
+        active_rule_md_max = max(   active_rule[1][2],
+                                    active_rule[2][1]   )
+
+        speed_activation_md = np.fmin(accessibleSpeed[1], active_rule_md_max)
+
+        # 1 rules
+        active_rule_hi_max = active_rule[2][2]
+
+        speed_activation_hi = np.fmin(accessibleSpeed[2], active_rule_hi_max)
+
+        # Aggregate all three output membership functions together
+        aggregated = np.fmax(speed_activation_lo,
+                            np.fmax(speed_activation_md, speed_activation_hi))
+        
+        # Calculate defuzzified result
+        accessibleSpeed_output = fuzz.defuzz(x_accessibleSpeed, aggregated, 'centroid')
+
+        # intrinsequeSpeed_fuzzy = [max(speed_activation_lo), max(speed_activation_md), max(speed_activation_hi)]
+        # print(intrinsequeSpeed_fuzzy)
+
+        return accessibleSpeed_output
+
+    def SpeedLimmit(self, LimitSpeed, AccessibleSpeed) : 
+        if(AccessibleSpeed>=LimitSpeed):
+            if ( self._behavior >= 0.7 ):
+                return AccessibleSpeed
+            return LimitSpeed
+        else:
+            return AccessibleSpeed
 
 
 
