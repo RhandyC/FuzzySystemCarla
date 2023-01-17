@@ -1,48 +1,158 @@
-"""
-This module is made up of 5 fuzzy systems and 3 fuzzy arithmetic operations, 
-the objective of this project is to be able to command a car at a tactical 
-level. This module was developped by Rhandy CARDENAS and Loic TCHAMGOUE. 
-The reference library used was skfuzzy https://pythonhosted.org/scikit-fuzzy/
-"""
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 import skfuzzy as fuzz
 
-# ----------------------------------------------------------------------------------
-# Modules fuzzyfication
-# ----------------------------------------------------------------------------------
-# In order to make more realistic our system we decided to fuzzyfy our inputs, then
-# do a arithmetic fuzzy calculation. The following functions serve this purpose
-#
-#---------------------
+def Sistemeflou1(foggy_level, brightness_level) :        
+    print(foggy_level, brightness_level)
+    x_foggy = np.arange(0, 1.05, 0.05)
+    x_brightness = np.arange(0, 1.05, 0.05)        
+    x_speed  = np.arange(0, 131, 1)        
+    foggy_lo = fuzz.trimf(x_foggy, [0, 0, 0.5])        
+    foggy_md = fuzz.trimf(x_foggy, [0, 0.5, 1])        
+    foggy_hi = fuzz.trimf(x_foggy, [0.5, 1, 1])        
+    brightness_lo = fuzz.trimf(x_brightness, [0, 0, 0.5])  
+    brightness_md = fuzz.trimf(x_brightness, [0, 0.5, 1])  
+    brightness_hi = fuzz.trimf(x_brightness, [0.5, 1, 1])        
+    speed_lo = fuzz.trimf(x_speed, [0, 0, 65])        
+    speed_md = fuzz.trimf(x_speed, [0, 65, 130])        
+    speed_hi = fuzz.trimf(x_speed, [65, 130, 130])       
+    
+    # fig, (ax0, ax1, ax2) = plt.subplots(nrows=3, figsize=(8, 9))        
+    # ax0.plot(x_foggy, foggy_lo, 'b', linewidth=1.5, label='Low')        
+    # ax0.plot(x_foggy, foggy_md, 'g', linewidth=1.5, label='Medium')
+    # ax0.plot(x_foggy, foggy_hi, 'r', linewidth=1.5, label='High')
+    # ax0.set_title('Foggy level')
+    # ax0.legend()
+
+    # ax1.plot(x_brightness, brightness_lo, 'b', linewidth=1.5, label='Low')
+    # ax1.plot(x_brightness, brightness_md, 'g', linewidth=1.5, label='Medium')
+    # ax1.plot(x_brightness, brightness_hi, 'r', linewidth=1.5, label='High')
+    # ax1.set_title('Brightness level')
+    # ax1.legend()
+
+    # ax2.plot(x_speed, speed_lo, 'b', linewidth=1.5, label='Low')
+    # ax2.plot(x_speed, speed_md, 'g', linewidth=1.5, label='Medium')
+    # ax2.plot(x_speed, speed_hi, 'r', linewidth=1.5, label='High')
+    # ax2.set_title('Speed Level')
+    # ax2.legend()
+
+    # for ax in (ax0, ax1, ax2):
+    #     ax.spines['top'].set_visible(False)
+    #     ax.spines['right'].set_visible(False)
+    #     ax.get_xaxis().tick_bottom()
+    #     ax.get_yaxis().tick_left()
+
+    # plt.tight_layout()
+    # plt.show()
+    
+    # We need the activation of our fuzzy membership functions at these values.
+    # The exact values 6.5 and 9.8 do not exist on our universes...
+    # This is what fuzz.interp_membership exists for!
+    current_foggy_level = foggy_level
+    current_brightness_level = brightness_level
+    foggy_level_lo = fuzz.interp_membership(x_foggy, foggy_lo, current_foggy_level)
+    foggy_level_md = fuzz.interp_membership(x_foggy, foggy_md, current_foggy_level)
+    foggy_level_hi = fuzz.interp_membership(x_foggy, foggy_hi, current_foggy_level)
+
+    brightness_level_lo = fuzz.interp_membership(x_brightness, brightness_lo, current_brightness_level)
+    brightness_level_md = fuzz.interp_membership(x_brightness, brightness_md, current_brightness_level)
+    brightness_level_hi = fuzz.interp_membership(x_brightness, brightness_hi, current_brightness_level)
+
+
+    # Now we take our rules and apply them. Rule 1 concerns bad food OR service.
+    # The OR operator means we take the maximum of these two.
+    active_rule1 = np.fmin(foggy_level_lo, brightness_level_hi)
+    active_rule2 = np.fmin(foggy_level_lo, brightness_level_md)
+    active_rule3 = np.fmin(foggy_level_lo, brightness_level_lo)
+
+    active_rule4 = np.fmin(foggy_level_md, brightness_level_hi)
+    active_rule5 = np.fmin(foggy_level_md, brightness_level_md)
+    active_rule6 = np.fmin(foggy_level_md, brightness_level_lo)
+
+    active_rule7 = np.fmin(foggy_level_hi, brightness_level_hi)
+    active_rule8 = np.fmin(foggy_level_hi, brightness_level_md)
+    active_rule9 = np.fmin(foggy_level_hi, brightness_level_lo)
+
+    # # Now we apply this by clipping the top off the corresponding output
+    # # membership function with `np.fmin`
+
+    speed_activation_hi = np.fmin(max(active_rule1, active_rule2), speed_hi )  # removed entirely to 0
+    speed_activation_md = np.fmin(active_rule3, speed_md)
+    speed_activation_lo = np.fmin(max(active_rule3, active_rule4, active_rule5, active_rule6 ,active_rule7 ,active_rule8, active_rule9), speed_lo)
+
+    speed0 = np.zeros_like(x_speed)
+
+    # Visualize this
+    # fig, ax0 = plt.subplots(figsize=(8, 3))
+
+    # ax0.fill_between(x_speed, speed0, speed_activation_lo, facecolor='b', alpha=0.7)
+    # ax0.plot(x_speed, speed_lo, 'b', linewidth=0.5, linestyle='--', )
+    # ax0.fill_between(x_speed, speed0, speed_activation_md, facecolor='g', alpha=0.7)
+    # ax0.plot(x_speed, speed_md, 'g', linewidth=0.5, linestyle='--')
+    # ax0.fill_between(x_speed, speed0, speed_activation_hi, facecolor='r', alpha=0.7)
+    # ax0.plot(x_speed, speed_hi, 'r', linewidth=0.5, linestyle='--')
+    # ax0.set_title('Output membership activity')
+
+    # # Turn off top/right axes
+    # for ax in (ax0,):
+    #     ax.spines['top'].set_visible(False)
+    #     ax.spines['right'].set_visible(False)
+    #     ax.get_xaxis().tick_bottom()
+    #     ax.get_yaxis().tick_left()
+
+    # plt.tight_layout()
+
+    # plt.show()
+
+
+    # Aggregate all three output membership functions together
+    aggregated = np.fmax(speed_activation_lo,
+                        np.fmax(speed_activation_md, speed_activation_hi))
+
+    # Calculate defuzzified result
+    speed = fuzz.defuzz(x_speed, aggregated, 'centroid')
+    speed_activation = fuzz.interp_membership(x_speed, aggregated, speed)  # for plot
+    #print(speed)
+
+    # Visualize this
+    # fig, ax0 = plt.subplots(figsize=(8, 3))
+
+    # ax0.plot(x_speed, speed_lo, 'b', linewidth=0.5, linestyle='--', )
+    # ax0.plot(x_speed, speed_md, 'g', linewidth=0.5, linestyle='--')
+    # ax0.plot(x_speed, speed_hi, 'r', linewidth=0.5, linestyle='--')
+    # ax0.fill_between(x_speed, speed0, aggregated, facecolor='Orange', alpha=0.7)
+    # ax0.plot([speed, speed], [0, speed_activation], 'k', linewidth=1.5, alpha=0.9)
+    # ax0.set_title('Aggregated membership and result (line)')
+
+    # # Turn off top/right axes
+    # for ax in (ax0,):
+    #     ax.spines['top'].set_visible(False)
+    #     ax.spines['right'].set_visible(False)
+    #     ax.get_xaxis().tick_bottom()
+    #     ax.get_yaxis().tick_left()
+
+    # plt.tight_layout()
+    # plt.show()
+    return (speed)
+
 
 def distanceFuzzification(distance,range = 1.0):
-    # x_distance = np.arange(0, 100.0, 0.01)
-    # fuzzy_distance = fuzz.trapmf(x_distance, [distance - range, distance - range/2.0, distance + range/2.0, distance + range])
+    x_distance = np.arange(0, 100.0, 0.01)
+    fuzzy_distance = fuzz.trapmf(x_distance, [distance - range, distance - range/2.0, distance + range/2.0, distance + range])
     # plt.plot(x_distance, fuzzy_distance, 'b', linewidth=0.5, linestyle='--', )
     # plt.show()
-    return [distance - range, distance - range/2.0, distance + range/2.0, distance + range]
+    return [distance - range, distance - range/2.0, distance + range/2.0, distance + range, fuzzy_distance]
 
 def speedFuzzification(speed,range = 1.0):
-    # x_speed = np.arange(0, 20.0, 0.01)
-    # fuzzy_speed = fuzz.trapmf(x_speed, [speed - range, speed - range/2.0, speed + range/2.0, speed + range])
+    x_speed = np.arange(0, 20.0, 0.01)
+    fuzzy_speed = fuzz.trapmf(x_speed, [speed - range, speed - range/2.0, speed + range/2.0, speed + range])
     # plt.plot(x_speed, fuzzy_speed, 'b', linewidth=0.5, linestyle='--', )
     # plt.show()
-    return [speed - range, speed - range/2.0, speed + range/2.0, speed + range] 
-
-# ----------------------------------------------------------------------------------
-# Modules CAF
-# ----------------------------------------------------------------------------------
-# One of the necessary inputs for the following systems is the intervehicular
-# time that will be calculated as follows. Then we need to choose the most 
-# restrictive TIV in other words the smallest.
-#
-#-----------------------------------------------------------------------------------
+    return [speed - range, speed - range/2.0, speed + range/2.0, speed + range, fuzzy_speed] 
 
 def caf_TIV(speed, distance):
-    if( (speed[1]+speed[2])/2 < 0 ):
-            return [10.0,10.0,10.0,10.0]
     x_tiv = np.arange(0, 10.1, 0.01)
     ### Calcul directe
     fuzzy_tiv = fuzz.trapmf(x_tiv, [distance[0]/speed[3],distance[1]/speed[2],distance[2]/speed[1] ,distance[3]/speed[0]])
@@ -74,20 +184,7 @@ def minTIV(tiv1, tiv2):
     # plt.show()
     return vector_trapmf
 
-# ----------------------------------------------------------------------------------
-# First fuzzy system - Visibility
-# ----------------------------------------------------------------------------------
-# The main objective of this system is to provide a degree of visibility according to 
-# the information retrieved from the simulation environment.
-#
-# Inputs (Crisp values):
-#           - Fogginess 
-#           - Brightness 
-# Outputs (Crisp value):
-#           - Visibility 
-#------------------------------------------------------------------------------------
-
-def Visibility(foggy_level, brightness_level) : 
+def Sistemeflou2(foggy_level, brightness_level) : 
     x_foggy = np.arange(0, 1.05, 0.01)
     x_brightness = np.arange(0, 1.05, 0.01)        
     x_visibility  = np.arange(0, 1.05, 0.01)        
@@ -120,11 +217,11 @@ def Visibility(foggy_level, brightness_level) :
     visibility_activation_hi = np.fmin(active_rule1, visibility_hi )  # removed entirely to 0
     visibility_activation_md = np.fmin(max(active_rule2, active_rule3), visibility_md)
     visibility_activation_lo = np.fmin(max(active_rule4, active_rule5, active_rule6), visibility_lo)
-
+    print(visibility_activation_hi)
     # Sortie floue, vector classes
     visibility_fuzzy = [max(visibility_activation_lo), max(visibility_activation_md), max(visibility_activation_hi)]
 
-    print("Fuzzy Visibility : ", visibility_fuzzy)
+    print(visibility_fuzzy)
 
     visibility0 = np.zeros_like(x_visibility)
 
@@ -136,8 +233,6 @@ def Visibility(foggy_level, brightness_level) :
     visibility = fuzz.defuzz(x_visibility, aggregated, 'centroid')
     visibility_activation = fuzz.interp_membership(x_visibility, aggregated, visibility)  # for plot
 
-    print("Visibility: ", visibility)
-
     # Visualize this
     fig, ax0 = plt.subplots(figsize=(8, 3))
 
@@ -148,7 +243,7 @@ def Visibility(foggy_level, brightness_level) :
     ax0.plot(x_speed, visibility_hi, 'r', linewidth=0.5, linestyle='--')
     ax0.fill_between(x_speed, visibility0, aggregated, facecolor='Orange', alpha=0.7)
     ax0.plot([visibility, visibility], [0, visibility_activation], 'k', linewidth=1.5, alpha=0.9)
-    ax0.set_title('Aggregated membership and result (line) -- Visibility')
+    ax0.set_title('Aggregated membership and result (line)')
 
     # Turn off top/right axes
     for ax in (ax0,):
@@ -162,37 +257,22 @@ def Visibility(foggy_level, brightness_level) :
 
     return (visibility)
 
-# ----------------------------------------------------------------------------------
-# Second fuzzy system - Intrinsic Speed
-# ----------------------------------------------------------------------------------
-# The main objective of this system is to obtain the speed at which a 
-# car could move according to its features and the way of driving.
-#
-# Inputs (Crisp values):
-#           - Fuel consumption 
-#           - Age of vehicle
-#           - Driver's behavior 
-# Outputs (Crisp value):
-#           - Intrinsic speed
-#------------------------------------------------------------------------------------
-
 def Vitesseintrinseque(conso_val, age_r_val, hate_val) : 
-    # Domain of variables
-    x_conso = np.arange(0, 25.1, 0.1)
-    x_age_r = np.arange(0, 25.1, 0.1)
+    x_conso = np.arange(0,1.1,0.1)
+    x_age_r = np.arange(0, 1.1, 0.1)
     x_hate = np.arange(0, 1.1, 0.1)
-    x_speed = np.arange(0, 200.1, 0.1)
+    x_speed = np.arange(0, 130.1, 0.1)
     
-    # Generate fuzzy membership functions using arrays (faster)
+    # Generate fuzzy membership functions
     conso = []
-    conso.append (fuzz.trimf(x_conso, [0, 0, 12.5]))
-    conso.append (fuzz.trimf(x_conso, [0 , 12.5, 25]))
-    conso.append (fuzz.trimf(x_conso, [12.5, 25, 25]))
+    conso.append (fuzz.trimf(x_conso, [0, 0, 0.5]))
+    conso.append (fuzz.trimf(x_conso, [0 , 0.5, 1]))
+    conso.append (fuzz.trimf(x_conso, [0.5, 1, 1]))
 
     age_r = []
-    age_r.append (fuzz.trimf(x_age_r, [0, 0, 12.5]))
-    age_r.append (fuzz.trimf(x_age_r, [0 , 12.5, 25]))
-    age_r.append (fuzz.trimf(x_age_r, [12.5, 25, 25]))
+    age_r.append (fuzz.trimf(x_age_r, [0, 0, 0.5]))
+    age_r.append (fuzz.trimf(x_age_r, [0 , 0.5, 1]))
+    age_r.append (fuzz.trimf(x_age_r, [0.5, 1, 1]))
 
     hate = []
     hate.append (fuzz.trimf(x_hate, [0, 0, 0.5]))
@@ -200,11 +280,10 @@ def Vitesseintrinseque(conso_val, age_r_val, hate_val) :
     hate.append(fuzz.trimf(x_hate, [0.5, 1, 1]))
 
     speed=[]
-    speed.append(fuzz.trimf(x_speed, [0, 0, 100]))
-    speed.append(fuzz.trimf(x_speed, [0 , 100, 200]))
-    speed.append(fuzz.trimf(x_speed, [100, 200, 200]))
+    speed.append(fuzz.trimf(x_speed, [0, 0, 65]))
+    speed.append(fuzz.trimf(x_speed, [0 , 65, 130]))
+    speed.append(fuzz.trimf(x_speed, [65, 130, 130]))
 
-    # Interpretation of crisp value inside the membership functions using arrays 
     conso_level = []
     age_r_level = []
     hate_level = []
@@ -214,8 +293,8 @@ def Vitesseintrinseque(conso_val, age_r_val, hate_val) :
         age_r_level.append(fuzz.interp_membership(x_age_r, age_r[i], age_r_val))
         hate_level.append(fuzz.interp_membership(x_hate, hate[i], hate_val))
 
-    # Rules using arrays 
     active_rule = [[[0 for k in range(3)] for j in range(3)] for i in range(3)]
+
 
     for i in range (3) :
         for j in range (3):
@@ -234,7 +313,8 @@ def Vitesseintrinseque(conso_val, age_r_val, hate_val) :
                                 active_rule[1][2][0],
                                 active_rule[1][2][1],
                                 active_rule[1][2][2]   )
-    # Triggering of rules
+
+
     speed_activation_lo = np.fmin(speed[0], active_rule_lo_max)
 
     # 13 rules
@@ -251,7 +331,7 @@ def Vitesseintrinseque(conso_val, age_r_val, hate_val) :
                                 active_rule[2][2][0],
                                 active_rule[2][2][1],
                                 active_rule[2][2][2]     )
-    # Triggering of rules
+
     speed_activation_md = np.fmin(speed[1], active_rule_md_max)
 
     # 4 rules
@@ -259,7 +339,7 @@ def Vitesseintrinseque(conso_val, age_r_val, hate_val) :
                                 active_rule[2][0][1],
                                 active_rule[2][0][2],
                                 active_rule[2][1][2]  )
-    # Triggering of rules
+
     speed_activation_hi = np.fmin(speed[2], active_rule_hi_max)
 
     # Aggregate all three output membership functions together
@@ -269,72 +349,33 @@ def Vitesseintrinseque(conso_val, age_r_val, hate_val) :
     # Calculate defuzzified result
     intrinsicSpeed = fuzz.defuzz(x_speed, aggregated, 'centroid')
 
-    # Fuzzy ouput if needed
     intrinsequeSpeed_fuzzy = [max(speed_activation_lo), max(speed_activation_md), max(speed_activation_hi)]
-    print("Fuzzy Intrinsic Speed : ",intrinsequeSpeed_fuzzy)
-    print("Intrinsic Speed : ",intrinsicSpeed)
-
-    # Visualize this
-    fig, ax0 = plt.subplots(figsize=(8, 3))
-    
-    speed0 = np.zeros_like(x_speed)
-    speed_activation = fuzz.interp_membership(x_speed, aggregated, intrinsicSpeed)  # for plot
-
-    ax0.plot(x_speed, speed[0], 'b', linewidth=0.5, linestyle='--')
-    ax0.plot(x_speed, speed[1], 'g', linewidth=0.5, linestyle='--')
-    ax0.plot(x_speed, speed[2], 'r', linewidth=0.5, linestyle='--')
-    ax0.fill_between(x_speed, speed0, aggregated, facecolor='Orange', alpha=0.7)
-    ax0.plot([intrinsicSpeed, intrinsicSpeed], [0, speed_activation], 'k', linewidth=1.5, alpha=0.9)
-    ax0.set_title('Aggregated membership and result (line) -- Intrinsic Speed')
-
-    # Turn off top/right axes
-    for ax in (ax0,):
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
-
-    plt.tight_layout()
-    plt.show()
+    print(intrinsequeSpeed_fuzzy)
 
     return intrinsicSpeed
 
-# ----------------------------------------------------------------------------------
-# Third fuzzy system - Accesible Speed
-# ----------------------------------------------------------------------------------
-# The main objective of this module is to combine the visibility and the 
-# limit speed of the vehicle to obtain a coherent speed in the driving context.
-#
-# Inputs (Crisp values):
-#           - Intrinsic Speed
-#           - Visibility
-# Outputs (Crisp value):
-#           - Accessible speed
-#------------------------------------------------------------------------------------
-
 def AccessibleSpeed(intSpeed_val, visibility_val) : 
-    # Domain of variables
-    x_visibility = np.arange(0,1.1,0.1)
-    x_intSpeed = np.arange(0, 200.1, 0.1)
-    x_accessibleSpeed = np.arange(0, 200.1, 0.1)
 
-    # Generate fuzzy membership functions using arrays (faster)
+    x_visibility = np.arange(0,1.1,0.1)
+    x_intSpeed = np.arange(0, 130.1, 0.1)
+    x_accessibleSpeed = np.arange(0, 130.1, 0.1)
+    
+    # Generate fuzzy membership functions
     visibility  = []
     visibility.append (fuzz.trimf(x_visibility, [0, 0, 0.5]))
     visibility.append (fuzz.trimf(x_visibility, [0 , 0.5, 1]))
     visibility.append (fuzz.trimf(x_visibility, [0.5, 1, 1]))
 
     intSpeed = []
-    intSpeed.append(fuzz.trimf(x_intSpeed, [0, 0, 100]))
-    intSpeed.append(fuzz.trimf(x_intSpeed, [0 , 100, 200]))
-    intSpeed.append(fuzz.trimf(x_intSpeed, [100, 200, 200]))
+    intSpeed.append(fuzz.trimf(x_intSpeed, [0, 0, 65]))
+    intSpeed.append(fuzz.trimf(x_intSpeed, [0 , 65, 130]))
+    intSpeed.append(fuzz.trimf(x_intSpeed, [65, 130, 130]))
 
     accessibleSpeed = []
-    accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [0, 0, 100]))
-    accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [0 , 100, 200]))
-    accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [100, 200, 200]))
+    accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [0, 0, 65]))
+    accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [0 , 65, 130]))
+    accessibleSpeed.append(fuzz.trimf(x_accessibleSpeed, [65, 130, 130]))
 
-    # Interpretation of crisp value inside the membership functions using arrays 
     visibility_level = []
     intSpeed_level = []
     accessibleSpeed_level = []
@@ -343,14 +384,14 @@ def AccessibleSpeed(intSpeed_val, visibility_val) :
         visibility_level.append(fuzz.interp_membership(x_visibility, visibility[i], visibility_val))
         intSpeed_level.append(fuzz.interp_membership(x_intSpeed, intSpeed[i], intSpeed_val))
 
-    # Rules using arrays 
     active_rule = [[0 for k in range(3)] for j in range(3)]
+
 
     for i in range (3) :
         for j in range (3):
             active_rule[i][j] = np.fmin(visibility_level[i], intSpeed_level[j])
 
-    # 6 rules
+    # 10 rules
     active_rule_lo_max = max(   active_rule[0][0],
                                 active_rule[0][1],
                                 active_rule[0][2],
@@ -358,20 +399,18 @@ def AccessibleSpeed(intSpeed_val, visibility_val) :
                                 active_rule[1][1],
                                 active_rule[2][0]   )
 
-    # Triggering of rules
+
     speed_activation_lo = np.fmin(accessibleSpeed[0], active_rule_lo_max)
 
-    # 2 rules
+    # 13 rules
     active_rule_md_max = max(   active_rule[1][2],
                                 active_rule[2][1]   )
 
-    # Triggering of rules
     speed_activation_md = np.fmin(accessibleSpeed[1], active_rule_md_max)
 
-    # 1 rules
+    # 4 rules
     active_rule_hi_max = active_rule[2][2]
 
-    # Triggering of rules
     speed_activation_hi = np.fmin(accessibleSpeed[2], active_rule_hi_max)
 
     # Aggregate all three output membership functions together
@@ -381,50 +420,10 @@ def AccessibleSpeed(intSpeed_val, visibility_val) :
     # Calculate defuzzified result
     accessibleSpeed_output = fuzz.defuzz(x_accessibleSpeed, aggregated, 'centroid')
 
-    # Fuzzy ouput if needed
-    intrinsequeSpeed_fuzzy = [max(speed_activation_lo), max(speed_activation_md), max(speed_activation_hi)]
-
-    print("Fuzzy Accesible Speed : ", intrinsequeSpeed_fuzzy)
-    print("Accesible Speed : ",accessibleSpeed_output)
-
-    # Visualize this
-    fig, ax0 = plt.subplots(figsize=(8, 3))
-    
-    speed0 = np.zeros_like(x_accessibleSpeed)
-    speed_activation = fuzz.interp_membership(x_accessibleSpeed, aggregated, accessibleSpeed_output)  # for plot
-
-    ax0.plot(x_accessibleSpeed, accessibleSpeed[0], 'b', linewidth=0.5, linestyle='--')
-    ax0.plot(x_accessibleSpeed, accessibleSpeed[1], 'g', linewidth=0.5, linestyle='--')
-    ax0.plot(x_accessibleSpeed, accessibleSpeed[2], 'r', linewidth=0.5, linestyle='--')
-    ax0.fill_between(x_accessibleSpeed, speed0, aggregated, facecolor='Orange', alpha=0.7)
-    ax0.plot([accessibleSpeed_output, accessibleSpeed_output], [0, speed_activation], 'k', linewidth=1.5, alpha=0.9)
-    ax0.set_title('Aggregated membership and result (line) -- Accessible Speed')
-
-    # Turn off top/right axes
-    for ax in (ax0,):
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
-
-    plt.tight_layout()
-    plt.show()
+    # intrinsequeSpeed_fuzzy = [max(speed_activation_lo), max(speed_activation_md), max(speed_activation_hi)]
+    # print(intrinsequeSpeed_fuzzy)
 
     return accessibleSpeed_output
-
-# ----------------------------------------------------------------------------------
-# Fourth fuzzy system - Risk Level of performing a lane change
-# ----------------------------------------------------------------------------------
-# The objective of this module is to assess the risk of or the 
-# possibility of executing a lane change. We considere the differents vehicules around
-# the ego_vehcule and the type of line marking
-#
-# Inputs :
-#           - TIV (fuzzy value IFT)
-#           - Line Marking (crips value)
-# Outputs :
-#           - Possibility to perform a Lane change (crisp value)
-#------------------------------------------------------------------------------------
 
 def CL_risk_level(tiv_val, line_marking_val) : 
     ## Domaine
@@ -503,21 +502,6 @@ def CL_risk_level(tiv_val, line_marking_val) :
     # plt.show()
     return gauche_output
 
-# ----------------------------------------------------------------------------------
-# Fifth fuzzy system - Lateral Desicion
-# ----------------------------------------------------------------------------------
-# The objective of this module is the final decision of the lateral maneuver to perform.
-# Considering the possibility or impossibility of going to the left or right lane 
-# and the behavior of the driver
-#
-# Inputs (Crisp Values):
-#           - Possibility Right
-#           - Possibility Left
-#           - Driver's behavior
-# Outputs (Crisp Values):
-#           - Decision : Keep Lane, Change Left Lane, Change Righ Lane
-#------------------------------------------------------------------------------------
-
 def DecisionOffset (right_val, left_val, behavior_val):
     x_right = np.arange(0, 1.1, 0.1)
     x_left = np.arange(0, 1.1, 0.1)
@@ -541,13 +525,9 @@ def DecisionOffset (right_val, left_val, behavior_val):
     behavior.append(fuzz.trimf(x_behavior, [0.5, 1, 1]))
 
     decision=[]
-    decision.append(fuzz.trimf(x_decision, [0, 0 , 0]))
-    decision.append(fuzz.trimf(x_decision, [0.5 , 0.5, 0.5]))
-    decision.append(fuzz.trimf(x_decision, [1, 1 , 1]))
-
-    # decision.append(fuzz.trapmf(x_decision, [0, 0, 0.33 , 0.33]))
-    # decision.append(fuzz.trapmf(x_decision, [0.33 , 0.33 , 0.66 , 0.66]))
-    # decision.append(fuzz.trapmf(x_decision, [0.66, 0.66, 1 , 1]))
+    decision.append(fuzz.trapmf(x_decision, [0, 0, 0.33 , 0.33]))
+    decision.append(fuzz.trapmf(x_decision, [0.33 , 0.33 , 0.66 , 0.66]))
+    decision.append(fuzz.trapmf(x_decision, [0.66, 0.66, 1 , 1]))
 
     right_level = []
     left_level = []
@@ -565,6 +545,7 @@ def DecisionOffset (right_val, left_val, behavior_val):
             for k in range (3):
                 active_rule[i][j][k] = np.fmin(right_level[i], left_level[j])
                 active_rule[i][j][k] = np.fmin(active_rule[i][j][k],behavior_level[k])
+
 
     # 14 rules
     active_rule_lo_max = max(   active_rule[0][1][1],
@@ -614,7 +595,7 @@ def DecisionOffset (right_val, left_val, behavior_val):
     desicionmaking = fuzz.defuzz(x_decision, aggregated, 'centroid')
 
     desicionmaking_fuzzy = [max(desicion_activation_lo), max(desicion_activation_md), max(desicion_activation_hi)]
-    print(desicionmaking_fuzzy)
+    # print(desicionmaking_fuzzy)
 
     result = np.where(desicionmaking_fuzzy == np.amax(desicionmaking_fuzzy))
     
@@ -630,44 +611,24 @@ def DecisionOffset (right_val, left_val, behavior_val):
 
     return desicionmaking
 
-# ----------------------------------------------------------------------------------
-# Module Limit Speed
-# ----------------------------------------------------------------------------------
-# The main objective of this module is to limit the speed, taking into 
-# account the legal speed and the behavior of the driver.
-#
-# Inputs (Crisp values):
-#           - Limit Speed
-#           - Accesible Speed
-# Outputs (Crisp value):
-#           - Target Speed
-#--------------------------------------------------------------
-
-def SpeedLimmit(LimitSpeed, AccessibleSpeed, Behavior): 
-    if(AccessibleSpeed >= LimitSpeed):
-        if ( Behavior >= 0.66 ):
-            print("Target Speed : ", AccessibleSpeed)
-            return AccessibleSpeed
-        print("Target Speed : ",LimitSpeed)
+def SpeedLimmit(LimitSpeed, AccessibleSpeed) : 
+    if(AccessibleSpeed>=LimitSpeed):
         return LimitSpeed
     else:
-        print("Target Speed : ",AccessibleSpeed)
         return AccessibleSpeed
 
 
-## 1er UseCase Longitudinal
-visibility = Visibility(foggy_level = 0.4, brightness_level = 0.3)
-v_intr = Vitesseintrinseque(conso_val = 15, age_r_val = 0.0, hate_val = 0.6)
-acc_speed = AccessibleSpeed(v_intr, visibility)
-LimitSpeed = 30
-Behavior = 0.2
-limit_speed = SpeedLimmit(LimitSpeed, acc_speed, Behavior) 
 
-## 2eme  UseCase Lateral
+# v = Vitesseintrinseque(conso_val = 1, age_r_val = 0.0, hate_val = 0.9)
+# av = AccessibleSpeed(intSpeed_val = 130, visibility_val = 0.1)
+# sl= SpeedLimmit(LimitSpeed = 30, AccessibleSpeed = 25)
+# print(v)
+
+# Sistemeflou2(0.2,0.8)
+
 # d = distanceFuzzification(20)
 # s = speedFuzzification(10)
 # tiv1 = caf_TIV(s, d)
-# print (tiv1)
 
 # d2 = distanceFuzzification(100)
 # s2 = speedFuzzification(10)
@@ -675,21 +636,149 @@ limit_speed = SpeedLimmit(LimitSpeed, acc_speed, Behavior)
 
 # vector = minTIV(tiv1, tiv2)
 
-# right_posibility = CL_risk_level(vector, 0)
-
-# d3 = distanceFuzzification(20)
-# s3 = speedFuzzification(10)
-# tiv3 = caf_TIV(s3, d3)
-# print (tiv3)
-
-# d4 = distanceFuzzification(100)
-# s4 = speedFuzzification(10)
-# tiv4 = caf_TIV(s4, d4)
-
-# vector2 = minTIV(tiv3, tiv4)
-
-# left_posibility = CL_risk_level(vector2, 0)
-
-# DecisionOffset(right_posibility, left_posibility, Behavior)
+# CLL_risk_level(vector, 0)
 
 
+#DecisionOffset(0.8, 0.1, 0.2)
+
+
+
+# v = Vitesseintrinseque(conso_val = 1, age_r_val = 0.0, hate_val = 0.9)
+# av = AccessibleSpeed(intSpeed_val = 130, visibility_val = 0.1)
+# sl= SpeedLimmit(LimitSpeed = 30, AccessibleSpeed = 25)
+# print(v)
+
+# Sistemeflou2(0.2,0.8)
+
+# behavior_val = 0.2
+# left_line_marking_val = 0
+
+##################### #Case 1
+
+behavior_val = 0.5
+left_line_marking_val = 0
+right_line_marking_val = 1
+
+dfl_val = 25
+dsfl_val = 10
+drl_val = 100
+dsrl_val = 10
+
+dfr_val = 100
+dsfr_val= 10
+
+drr_val = 100
+dsrr_val =100
+
+####################### #Case 2 et 2 bis
+
+# behavior_val = 0.2
+# left_line_marking_val = 0
+# right_line_marking_val = 0
+
+
+# dfl_val = 10
+# dsfl_val = 10
+
+# drl_val = 100
+# dsrl_val = 10
+
+# dfr_val = 5
+# dsfr_val= 10
+
+# drr_val = 100
+# dsrr_val =10
+
+###################### #Case 3
+
+# behavior_val = 0.2
+# left_line_marking_val = 0
+# right_line_marking_val = 0
+
+
+# dfl_val = 100
+# dsfl_val = 10
+
+# drl_val = 20
+# dsrl_val = 10
+
+# dfr_val = 100
+# dsfr_val= 10
+
+# drr_val = 5
+# dsrr_val =10
+
+
+###################### Case 4
+
+# behavior_val = 0.2
+# left_line_marking_val = 0
+# right_line_marking_val = 0
+
+
+# dfl_val = 10
+# dsfl_val = 10
+
+# drl_val = 20
+# dsrl_val = 10
+
+# dfr_val = 100
+# dsfr_val= 10
+
+# drr_val = 5
+# dsrr_val =10
+
+
+
+
+
+
+d_front_left = distanceFuzzification(dfl_val)
+ds_front_left = speedFuzzification(dsfl_val)
+front_left_tiv = caf_TIV(ds_front_left, d_front_left)
+
+d_rear_left = distanceFuzzification(drl_val)
+ds_rear_left = speedFuzzification(dsrl_val)
+rear_left_tiv = caf_TIV(ds_rear_left, d_rear_left)
+
+left_tiv = minTIV(front_left_tiv, rear_left_tiv)
+
+CLL_risk_level = CL_risk_level(left_tiv, left_line_marking_val)
+
+
+
+
+
+
+d_front_right = distanceFuzzification(dfr_val)
+ds_front_right = speedFuzzification(dsfr_val)
+front_right_tiv = caf_TIV(ds_front_right, d_front_right)
+
+d_rear_right = distanceFuzzification(drr_val)
+ds_rear_right = speedFuzzification(dsrr_val)
+rear_right_tiv = caf_TIV(ds_rear_right, d_rear_right)
+
+right_tiv = minTIV(front_right_tiv, rear_right_tiv)
+
+CRL_risk_level = CL_risk_level(right_tiv, right_line_marking_val)
+
+
+
+finaloffset = DecisionOffset (CRL_risk_level, CLL_risk_level, behavior_val)
+#finaloffset = DecisionOffset (0.6,0.6,0.9)
+
+
+
+
+# DecisionOffset(0.8, 0.1, 0.8)
+
+# r_tiv_val = minTIV(tiv, tiv2)
+
+# rtiv_val = caf_TIV(speed, distance)
+# ltiv_val = caf_TIV(speed, distance)
+
+# right_val =  CL_risk_level(rtiv_val, rline_marking_val)
+# left_val =  CL_risk_level(ltiv_val, lline_marking_val)
+
+
+# DecisionOffset (right_val, left_val, behavior_val)
